@@ -53,11 +53,11 @@ Antes de ejecutar el ataque, se estableció una línea base del entorno para val
 
 - El panel de overview muestra un agente activo, sin alertas críticas ni severas en las últimas 24 horas.
 
-_Screenshot: `images/dashboard_overview.png`_
+![Puerto RDP 3389 detectado con Nmap](images/dashboard-overview.png)
 
 - Se detectan algunos eventos 4625 previos, pero de bajo volumen y clasificados con severidad media.
 
-_Screenshot: `images/4625-04-08.png`_
+![4625](images/4625-04-08.png)
 
 ---
 
@@ -84,7 +84,7 @@ Comando utilizado:
 hydra -V -f -u -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.120
 
 ```
-_Screenshot: `images/hydra-bruteforce.png`_
+![Bruteforce Hydra](images/hydra-bruteforce.png)
 
 ---
 
@@ -98,6 +98,6 @@ Al revisar los registros desde la interfaz, se identificó lo siguiente:
 
 Este comportamiento indica que, aunque Wazuh detecta los eventos de manera correcta, **no los correlaciona automáticamente como un ataque de fuerza bruta**. La detección se basa en eventos individuales sin considerar su volumen, frecuencia ni IP de origen.
 
-_Screenshot: `images/4625-postattack.png`_
+![4625 post attack](images/dashboard-postattack.png)
 
 Esta observación da paso a la siguiente etapa: el diseño de una **regla personalizada** que permita correlacionar estos eventos como un único incidente de severidad **alta**.

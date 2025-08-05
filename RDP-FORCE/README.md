@@ -72,7 +72,7 @@ Comando utilizado:
 nmap -p 3389 192.168.100.120 
 
 ```
-_Screenshot: `images/nmap-3389.png`_
+![](images/4625-postattack.png)
 
 ## Ejecución del ataque con Hydra
 
@@ -90,8 +90,7 @@ _Screenshot: `images/hydra-bruteforce.png`_
 
 ## Detección y análisis inicial en Wazuh
 
-Tras ejecutar el ataque de fuerza bruta desde Kali Linux, Wazuh comenzó a registrar múltiples eventos relacionados con intentos fallidos de inicio de sesión en la máquina Windows 10 (Event ID 4625). Estos eventos fueron generados por el agente instalado y enviados al Wazuh Manager para su análisis.
-
+Tras ejecutar el ataque de fuerza bruta desde Kali Linux, Wazuh comenzó a registrar múltiples eventos relacionados con intentos fallidos de inicio de sesión en la máquina Windows 10 (Event ID 4625). Los eventos fueron detectados por el agente y enviados al Wazuh Manager para su análisis.
 Al revisar los registros desde la interfaz, se identificó lo siguiente:
 
 - Wazuh clasificó algunos eventos con **nivel de severidad bajo (`rule.level: 0`)**, tratándolos como fallos aislados.

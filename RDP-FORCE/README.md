@@ -72,7 +72,7 @@ Comando utilizado:
 nmap -p 3389 192.168.100.120 
 
 ```
-![](images/4625-postattack.png)
+![Puerto RDP 3389 detectado con Nmap](images/nmap-3389.png)
 
 ## Ejecución del ataque con Hydra
 

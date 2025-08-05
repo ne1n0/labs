@@ -1,4 +1,4 @@
-#  Lab Técnico: Detección y Respuesta ante Ataque de Fuerza Bruta RDP usando Wazuh
+#  Laboratorio de Detección y Respuesta ante Ataque de Fuerza Bruta RDP usando Wazuh
 
 ---
 
@@ -38,7 +38,7 @@ La actividad detectada se evalúa bajo el marco **MITRE ATT&CK**, específicamen
 
 | Herramienta       | Descripción                                 |
 |-------------------|---------------------------------------------|
-| Wazuh 4.x         | Plataforma SIEM/EDR para detección y respuesta |
+| Wazuh 4.12.0         | Plataforma SIEM/EDR para detección y respuesta |
 | Hydra             | Herramienta de fuerza bruta para RDP         |
 | Kali Linux        | Sistema atacante con herramientas ofensivas  |
 | Windows 10 Pro    | Sistema víctima con RDP y agente Wazuh       |

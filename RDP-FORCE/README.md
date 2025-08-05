@@ -55,10 +55,6 @@ Antes de ejecutar el ataque, se estableció una línea base del entorno para val
 
 ![Puerto RDP 3389 detectado con Nmap](images/dashboard-overview.png)
 
-- Se detectan algunos eventos 4625 previos, pero de bajo volumen y clasificados con severidad media.
-
-![4625](images/4625-04-08.png)
-
 ---
 
 ## Verificación de puerto RDP con Nmap
@@ -76,7 +72,7 @@ nmap -p 3389 192.168.100.120
 
 ## Ejecución del ataque con Hydra
 
-Desde la máquina atacante (Kali Linux), se ejecutó una campaña de fuerza bruta contra el servicio RDP de la máquina Windows 10 utilizando la herramienta Hydra.  
+Desde la máquina atacante (Kali Linux), se ejecutó un ataque de fuerza bruta contra el servicio RDP de la máquina Windows 10 utilizando la herramienta Hydra.  
 El objetivo fue forzar múltiples intentos de inicio de sesión fallidos en un corto periodo de tiempo, generando así un patrón detectable por Wazuh.
 
 Comando utilizado:

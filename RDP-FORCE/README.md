@@ -1,5 +1,3 @@
-# labs
-=======
 #  Lab Técnico: Detección y Respuesta ante Ataque de Fuerza Bruta RDP usando Wazuh
 
 ---
@@ -45,7 +43,7 @@ La actividad detectada se evalúa bajo el marco **MITRE ATT&CK**, específicamen
 | Kali Linux        | Sistema atacante con herramientas ofensivas  |
 | Windows 10 Pro    | Sistema víctima con RDP y agente Wazuh       |
 | MITRE ATT&CK      | Marco de referencia para clasificar TTPs     |
-| Nmap              | Verificación de puertos/servicios            |
+| Nmap              | Escaneo de puerto RDP para confirmar visibilidad previa al ataque |
 
 ---
 
@@ -63,6 +61,19 @@ _Screenshot: `images/4625-04-08.png`_
 
 ---
 
+## Verificación de puerto RDP con Nmap
+
+Previo a la ejecución del ataque, se utilizó la herramienta **Nmap** desde Kali Linux para validar que el servicio RDP (puerto 3389/TCP) estuviera activo y accesible desde la red.
+
+Comando utilizado:
+
+```bash
+
+nmap -p 3389 192.168.100.120 
+
+```
+_Screenshot: `images/nmap-3389.png`_
+
 ## Ejecución del ataque con Hydra
 
 Desde la máquina atacante (Kali Linux), se ejecutó una campaña de fuerza bruta contra el servicio RDP de la máquina Windows 10 utilizando la herramienta Hydra.  
@@ -75,4 +86,19 @@ hydra -V -f -u -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -P /
 ```
 _Screenshot: `images/hydra-bruteforce.png`_
 
+---
 
+## Detección y análisis inicial en Wazuh
+
+Tras ejecutar el ataque de fuerza bruta desde Kali Linux, Wazuh comenzó a registrar múltiples eventos relacionados con intentos fallidos de inicio de sesión en la máquina Windows 10 (Event ID 4625). Estos eventos fueron generados por el agente instalado y enviados al Wazuh Manager para su análisis.
+
+Al revisar los registros desde la interfaz, se identificó lo siguiente:
+
+- Wazuh clasificó algunos eventos con **nivel de severidad bajo (`rule.level: 0`)**, tratándolos como fallos aislados.
+- Otros eventos fueron clasificados como **`rule.level: 10` (Medium severity)**, especialmente cuando involucraban al usuario `Administrator`.
+
+Este comportamiento indica que, aunque Wazuh detecta los eventos de manera correcta, **no los correlaciona automáticamente como un ataque de fuerza bruta**. La detección se basa en eventos individuales sin considerar su volumen, frecuencia ni IP de origen.
+
+_Screenshot: `images/4625-postattack.png`_
+
+Esta observación da paso a la siguiente etapa: el diseño de una **regla personalizada** que permita correlacionar estos eventos como un único incidente de severidad **alta**.

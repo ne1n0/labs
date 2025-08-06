@@ -86,14 +86,42 @@ hydra -V -f -u -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -P /
 
 ## Detección y análisis inicial en Wazuh
 
-Tras ejecutar el ataque de fuerza bruta desde Kali Linux, Wazuh comenzó a registrar múltiples eventos relacionados con intentos fallidos de inicio de sesión en la máquina Windows 10 (Event ID 4625). Los eventos fueron detectados por el agente y enviados al Wazuh Manager para su análisis.
-Al revisar los registros desde la interfaz, se identificó lo siguiente:
+Tras ejecutar el ataque de fuerza bruta desde Kali Linux, Wazuh comenzó a registrar múltiples eventos relacionados con intentos fallidos de inicio de sesión en la máquina Windows 10.  
+Los eventos generados fueron del tipo **Event ID 4625**, correspondiente a _"An account failed to log on"_, que en Windows indica un intento fallido de autenticación.
 
-- Wazuh clasificó algunos eventos con **nivel de severidad bajo (`rule.level: 0`)**, tratándolos como fallos aislados.
-- Otros eventos fueron clasificados como **`rule.level: 10` (Medium severity)**, especialmente cuando involucraban al usuario `Administrator`.
+Estos eventos fueron detectados por el agente Wazuh instalado y enviados al Wazuh Manager para su análisis.
 
-Este comportamiento indica que, aunque Wazuh detecta los eventos de manera correcta, **no los correlaciona automáticamente como un ataque de fuerza bruta**. La detección se basa en eventos individuales sin considerar su volumen, frecuencia ni IP de origen.
+Al revisar los registros desde la interfaz, se observó lo siguiente:
+
+- Algunos eventos fueron clasificados con **nivel de severidad 5 (`rule.level: 5`)**, considerados fallos de autenticación comunes e individuales.
+
+  ![Intento fallido individual - Level 5](images/4625-low.png)
+
+- Otros eventos se clasificaron con **nivel de severidad 10 (`rule.level: 10`)**, incluso si no apuntaban a usuarios privilegiados.  
+  Esto se debe a la activación de una **regla de correlación (ID 60204)** que detecta múltiples eventos del grupo `authentication_failed` desde una misma IP en un corto intervalo de tiempo.
+
+  ![Intentos múltiples desde misma IP - Level 10](images/4625-medium.png)
+
+Este comportamiento revela que Wazuh **sí aplica una correlación automatizada** cuando se cumplen ciertos criterios definidos en sus reglas internas.  
+En particular:
+
+- La regla **60122** identifica eventos 4625 como fallos de autenticación y los agrupa bajo `authentication_failed`.
+- La regla **60204** detecta múltiples eventos de este grupo desde una misma IP en menos de 240 segundos, elevando la alerta a **`rule.level: 10`** y asociándola a la técnica **T1110 – Brute Force** del marco MITRE ATT&CK.
+
+![Resumen post-ataque](images/dashboard-postattack.png)
+
+---
+
+Este comportamiento evidencia que, aunque Wazuh **detecta correctamente los eventos 4625**, **no los correlaciona automáticamente como un ataque de fuerza bruta**,
+ ya que su lógica de detección se basa en la evaluación individual de cada evento, sin considerar:
+
+- Volumen acumulado de eventos
+- Frecuencia de ocurrencia
+- IP de origen común
 
 ![4625 post attack](images/dashboard-postattack.png)
 
 Esta observación da paso a la siguiente etapa: el diseño de una **regla personalizada** que permita correlacionar estos eventos como un único incidente de severidad **alta**.
+
+
+

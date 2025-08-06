@@ -98,11 +98,11 @@ Al revisar los registros desde la interfaz, se observó lo siguiente:
   ![Intento fallido individual - Level 5](images/4625-low.png)
 
 - Otros eventos se clasificaron con **nivel de severidad 10 (`rule.level: 10`)**, incluso si no apuntaban a usuarios privilegiados.  
-  Esto se debe a la activación de una **regla de correlación (ID 60204)** que detecta múltiples eventos del grupo `authentication_failed` desde una misma IP en un corto intervalo de tiempo.
+  Esto se debe a la activación de una regla de correlación **(ID 60204)** que detecta múltiples eventos del grupo `authentication_failed` desde una misma IP en un corto intervalo de tiempo.
 
   ![Intentos múltiples desde misma IP - Level 10](images/4625-medium.png)
 
-Este comportamiento revela que Wazuh **sí aplica una correlación automatizada** cuando se cumplen ciertos criterios definidos en sus reglas internas.  
+Este comportamiento revela que Wazuh sí aplica una correlación automatizada cuando se cumplen ciertos criterios definidos en sus reglas internas.  
 En particular:
 
 - La regla **60122** identifica eventos 4625 como fallos de autenticación y los agrupa bajo `authentication_failed`.
@@ -111,7 +111,7 @@ En particular:
 
 ---
 
-Este comportamiento evidencia que, aunque Wazuh **detecta correctamente los eventos 4625**, **no los correlaciona automáticamente como un ataque de fuerza bruta**,
+Este comportamiento evidencia que, aunque Wazuh detecta correctamente los eventos 4625, no los correlaciona automáticamente como un ataque de fuerza bruta,
  ya que su lógica de detección se basa en la evaluación individual de cada evento, sin considerar:
 
 - Volumen acumulado de eventos
@@ -120,7 +120,7 @@ Este comportamiento evidencia que, aunque Wazuh **detecta correctamente los even
 
 ![4625 post attack](images/dashboard-postattack.png)
 
-Esta observación da paso a la siguiente etapa: el diseño de una **regla personalizada** que permita correlacionar estos eventos como un único incidente de severidad **alta**.
+Esta observación da paso a la siguiente etapa: el diseño de una regla personalizada que permita correlacionar estos eventos como un único incidente de severidad **alta**.
 
 
 

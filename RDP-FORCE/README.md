@@ -108,7 +108,6 @@ En particular:
 - La regla **60122** identifica eventos 4625 como fallos de autenticación y los agrupa bajo `authentication_failed`.
 - La regla **60204** detecta múltiples eventos de este grupo desde una misma IP en menos de 240 segundos, elevando la alerta a **`rule.level: 10`** y asociándola a la técnica **T1110 – Brute Force** del marco MITRE ATT&CK.
 
-![Resumen post-ataque](images/dashboard-postattack.png)
 
 ---
 

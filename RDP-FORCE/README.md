@@ -122,5 +122,24 @@ Este comportamiento evidencia que, aunque Wazuh detecta correctamente los evento
 
 Esta observación da paso a la siguiente etapa: el diseño de una regla personalizada que permita correlacionar estos eventos como un único incidente de severidad **alta**.
 
+---
 
+##  Implementación de regla personalizada
+
+Con base en los hallazgos anteriores, se desarrolló una regla personalizada en `local_rules.xml`, con el objetivo de correlacionar múltiples intentos fallidos de autenticación (event ID 4625) desde una misma IP y usuario en un corto periodo.
+
+La regla asigna **nivel de severidad 12** y se alinea con la técnica **T1110.001 - Password Guessing vía RDP** del marco MITRE ATT&CK.
+
+```xml
+<rule id="100111" level="12" frequency="5" timeframe="60">
+  <if_sid>60122</if_sid>
+  <same_source_ip />
+  <same_user />
+  <description>Brute-force RDP attack detected(Event 4625): 5+ failures from same IP/user</description>
+  <mitre>
+    <id>T1110.001</id>
+    <technique>Password Guessing via RDP</technique>
+  </mitre>
+  <group>rdp, brute_force, authentication_failed</group>
+</rule>
 

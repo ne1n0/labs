@@ -81,7 +81,7 @@ Comando utilizado:
  hydra -t 1 -V -f -u -l Administrator -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.120
 
 ```
-![Bruteforce Hydra](images/hydra-bruteforce.png)
+![Bruteforce Hydra](images/hydra-bruteforce2.png)
 
 ---
 

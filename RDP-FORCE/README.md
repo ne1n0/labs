@@ -87,10 +87,9 @@ Comando utilizado:
 
 ## Detección y análisis inicial en Wazuh
 
-Tras ejecutar el ataque de fuerza bruta desde Kali Linux, Wazuh comenzó a registrar múltiples eventos relacionados con intentos fallidos de inicio de sesión en la máquina Windows 10.  
-Los eventos generados fueron del tipo **Event ID 4625**, correspondiente a _"An account failed to log on"_, que en Windows indica un intento fallido de autenticación.
+Tras ejecutar un ataque de fuerza bruta desde la máquina Kali Linux, se generaron múltiples eventos de autenticación fallida **Event ID 4625** en el host Windows 10. Este evento es típico cuando se intenta acceder al sistema con credenciales inválidas mediante servicios como RDP.
 
-Estos eventos fueron detectados por el agente Wazuh instalado y enviados al Wazuh Manager para su análisis.
+El agente Wazuh en la máquina víctima detectó y envió dichos eventos al Wazuh Manager para su análisis y clasificación.
 
 Al revisar los registros desde la interfaz, se observó lo siguiente:
 
@@ -103,51 +102,53 @@ Al revisar los registros desde la interfaz, se observó lo siguiente:
 
   ![Intentos múltiples desde misma IP - Level 10](images/4625-medium.png)
 
-Este comportamiento revela que Wazuh sí aplica una correlación automatizada cuando se cumplen ciertos criterios definidos en sus reglas internas.  
-En particular:
-
 - La regla **60122** identifica eventos 4625 como fallos de autenticación y los agrupa bajo `authentication_failed`.
 - La regla **60204** detecta múltiples eventos de este grupo desde una misma IP en menos de 240 segundos, elevando la alerta a **`rule.level: 10`** y asociándola a la técnica **T1110 – Brute Force** del marco MITRE ATT&CK.
 
+Esta lógica de correlación predeterminada de Wazuh es útil, pero presenta ciertas limitaciones. Aunque el sistema agrupa eventos similares, la severidad asignada puede no reflejar con precisión la gravedad del ataque, sobre todo en el caso de patrones de fuerza bruta que escalan en volumen o frecuencia rápidamente.
 
----
-
-Este comportamiento evidencia que, aunque Wazuh detecta correctamente los eventos 4625, no los correlaciona automáticamente como un ataque de fuerza bruta,
- ya que su lógica de detección se basa en la evaluación individual de cada evento, sin considerar:
-
-- Volumen acumulado de eventos
-- Frecuencia de ocurrencia
-- IP de origen común
+Wazuh realiza una correlación básica de eventos relacionados con fallos de autenticación, pero el nivel de severidad asignado no siempre permite distinguir entre intentos triviales y ataques sostenidos.
+Esto motivó a la creación de una regla personalizada, diseñada para detectar específicamente ataques de fuerza bruta por RDP y asignarles una criticidad adecuada.
 
 ![4625 post attack](images/dashboard-postattack.png)
-
-Esta observación da paso a la siguiente etapa: el diseño de una regla personalizada que permita correlacionar estos eventos como un único incidente de severidad **alta**.
 
 ---
 
 ##  Implementación de regla personalizada
 
-En base en los hallazgos anteriores, se desarrolló una regla personalizada en `local_rules.xml`, con el objetivo de correlacionar múltiples intentos fallidos de autenticación (event ID 4625) desde una misma IP y usuario en un periodo de 2 minutos.
+Con base en los hallazgos anteriores, se diseñó una regla específica en el archivo `local_rules.xml`. Esta regla tiene como objetivo:
 
-La regla asigna **nivel de severidad 12** y se alinea con la técnica **T1110.001 - Password Guessing vía RDP** del marco MITRE ATT&CK.
+- Correlacionar cinco o más eventos `60122` (autenticación fallida) desde la misma dirección IP  
+- Dentro de un periodo de **60 segundos**  
+- Asignar un **nivel de severidad 12** (crítico)  
+- Asociar el incidente con las técnicas `T1110.001` y `T1078` del marco **MITRE ATT&CK**
 
 ```xml
-<group name="windows_security, brute_force, authentication_failed">
-  <rule id="100111" level="12" frequency="5" timeframe="120">
+<group name="rdp, brute_force, custom_detection">
+  <rule id="100999" level="12" frequency="5" timeframe="60">
     <if_matched_sid>60122</if_matched_sid>
-    <same_source_ip />
-    <same_user />
-    <description>Brute-force RDP attack detected(EventID 4625): 5+ failures from same IP/user</description>
+    <same_field>win.eventdata.ipAddress</same_field>
+    <description>Fuerza bruta RDP: 5+ fallos desde la misma IP en 60s.</description>
     <mitre>
-      <id>T1110.001</id>
+      <id>T1110.001</id> 
+      <id>T1078</id>    
     </mitre>
-    <group>rdp, brute_force, authentication_failed</group>
   </rule>
 </group>
 ```
 
 ##  Validación de la regla personalizada
 
-Una vez implementada la regla en `local_rules.xml`, se repitió el ataque de fuerza bruta desde la máquina atacante, simulando múltiples intentos fallidos de autenticación contra el servicio RDP del host Windows 10, desde la misma IP y usuario en un intervalo breve.
+Durante esta segunda ejecución, la nueva lógica de correlación se activó correctamente:  
+Wazuh generó las alertas con **nivel de severidad 12**, agrupando múltiples eventos `4625` provenientes de la misma dirección IP.
 
-Como resultado, Wazuh generó una alerta con nivel de severidad **12**, indicando que la regla personalizada fue aplicada correctamente.
+![attack-post-rule](/images/dashboard-postrule.png)
+
+La alerta fue etiquetada con las técnicas del marco **MITRE ATT&CK**:
+
+- `T1110.001 – Password Guessing`
+- `T1078 – Valid Accounts`
+
+![logpostattack](/images/log-event-post-attack.png)
+Esto confirma que la regla personalizada cumplió con su propósito, mejorando la visibilidad y criticidad asignada a este patrón de ataque.
+

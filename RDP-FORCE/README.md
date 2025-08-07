@@ -18,7 +18,8 @@ La actividad detectada se evalúa bajo el marco **MITRE ATT&CK**, específicamen
 
 - Simular y monitorear un ataque de fuerza bruta RDP con **Hydra** y **Wazuh**.
 - Analizar la correlación y severidad de alertas generadas por Wazuh.
-- Ajustar la detección mediante una **regla personalizada** basada en MITRE ATT&CK (T1110.001).
+
+
 - Implementar y verificar una **respuesta automática (active-response)** ante el patrón detectado.
 - Documentar evidencias y hallazgos técnicos de utilidad en entornos SOC.
 
@@ -53,7 +54,7 @@ Antes de ejecutar el ataque, se estableció una línea base del entorno para val
 
 - El panel de overview muestra un agente activo, sin alertas críticas ni severas en las últimas 24 horas.
 
-![Puerto RDP 3389 detectado con Nmap](images/dashboard-overview.png)
+![Puerto RDP 3389 detectado con Nmap](images/dashboard-overview2.png)
 
 ---
 
@@ -77,7 +78,7 @@ El objetivo fue forzar múltiples intentos de inicio de sesión fallidos en un c
 
 Comando utilizado:
 ```bash
-hydra -V -f -u -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.120
+ hydra -t 1 -V -f -u -l Administrator -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.120
 
 ```
 ![Bruteforce Hydra](images/hydra-bruteforce.png)
@@ -126,20 +127,27 @@ Esta observación da paso a la siguiente etapa: el diseño de una regla personal
 
 ##  Implementación de regla personalizada
 
-Con base en los hallazgos anteriores, se desarrolló una regla personalizada en `local_rules.xml`, con el objetivo de correlacionar múltiples intentos fallidos de autenticación (event ID 4625) desde una misma IP y usuario en un corto periodo.
+En base en los hallazgos anteriores, se desarrolló una regla personalizada en `local_rules.xml`, con el objetivo de correlacionar múltiples intentos fallidos de autenticación (event ID 4625) desde una misma IP y usuario en un periodo de 2 minutos.
 
 La regla asigna **nivel de severidad 12** y se alinea con la técnica **T1110.001 - Password Guessing vía RDP** del marco MITRE ATT&CK.
 
 ```xml
-<rule id="100111" level="12" frequency="5" timeframe="60">
-  <if_sid>60122</if_sid>
-  <same_source_ip />
-  <same_user />
-  <description>Brute-force RDP attack detected(Event 4625): 5+ failures from same IP/user</description>
-  <mitre>
-    <id>T1110.001</id>
-    <technique>Password Guessing via RDP</technique>
-  </mitre>
-  <group>rdp, brute_force, authentication_failed</group>
-</rule>
+<group name="windows_security, brute_force, authentication_failed">
+  <rule id="100111" level="12" frequency="5" timeframe="120">
+    <if_matched_sid>60122</if_matched_sid>
+    <same_source_ip />
+    <same_user />
+    <description>Brute-force RDP attack detected(EventID 4625): 5+ failures from same IP/user</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>rdp, brute_force, authentication_failed</group>
+  </rule>
+</group>
+```
 
+##  Validación de la regla personalizada
+
+Una vez implementada la regla en `local_rules.xml`, se repitió el ataque de fuerza bruta desde la máquina atacante, simulando múltiples intentos fallidos de autenticación contra el servicio RDP del host Windows 10, desde la misma IP y usuario en un intervalo breve.
+
+Como resultado, Wazuh generó una alerta con nivel de severidad **12**, indicando que la regla personalizada fue aplicada correctamente.

@@ -142,13 +142,13 @@ Con base en los hallazgos anteriores, se diseñó una regla específica en el ar
 Durante esta segunda ejecución, la nueva lógica de correlación se activó correctamente:  
 Wazuh generó las alertas con **nivel de severidad 12**, agrupando múltiples eventos `4625` provenientes de la misma dirección IP.
 
-![attack-post-rule](/images/dashboard-postrule.png)
+![attack-post-rule](images/dashboard-postrule.png)
 
 La alerta fue etiquetada con las técnicas del marco **MITRE ATT&CK**:
 
 - `T1110.001 – Password Guessing`
 - `T1078 – Valid Accounts`
 
-![logpostattack](/images/log-event-post-attack.png)
+![logpostattack](images/log-event-post-attack.png)
 Esto confirma que la regla personalizada cumplió con su propósito, mejorando la visibilidad y criticidad asignada a este patrón de ataque.
 

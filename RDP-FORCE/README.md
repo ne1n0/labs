@@ -116,7 +116,7 @@ Esto motivó a la creación de una regla personalizada, diseñada para detectar 
 
 ##  Implementación de regla personalizada
 
-Con base en los hallazgos anteriores, se diseñó una regla específica en el archivo `local_rules.xml`. Esta regla tiene como objetivo:
+En base en los hallazgos anteriores, se diseñó una regla específica en el archivo `local_rules.xml`. Esta regla tiene como objetivo:
 
 - Correlacionar cinco o más eventos `60122` (autenticación fallida) desde la misma dirección IP  
 - Dentro de un periodo de **60 segundos**  
@@ -139,7 +139,7 @@ Con base en los hallazgos anteriores, se diseñó una regla específica en el ar
 
 ##  Validación de la regla personalizada
 
-Durante esta segunda ejecución, la nueva lógica de correlación se activó correctamente:  
+Durante esta ejecución de ataque, la nueva lógica de correlación de la regla se activó correctamente:  
 Wazuh generó las alertas con **nivel de severidad 12**, agrupando múltiples eventos `4625` provenientes de la misma dirección IP.
 
 ![attack-post-rule](images/dashboard-postrule.png)
@@ -150,5 +150,6 @@ La alerta fue etiquetada con las técnicas del marco **MITRE ATT&CK**:
 - `T1078 – Valid Accounts`
 
 ![logpostattack](images/log-event-post-attack.png)
+
 Esto confirma que la regla personalizada cumplió con su propósito, mejorando la visibilidad y criticidad asignada a este patrón de ataque.
 

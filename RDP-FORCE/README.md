@@ -119,12 +119,16 @@ Al revisar los registros desde la interfaz, se observó lo siguiente:
 
 - Algunos eventos fueron clasificados con **nivel de severidad 5 (`rule.level: 5`)**, considerados fallos de autenticación comunes e individuales.
 
+
   ![Intento fallido individual - Level 5](images/4625-low.png)
+
 
 - Otros eventos se clasificaron con **nivel de severidad 10 (`rule.level: 10`)**, incluso si no apuntaban a usuarios privilegiados.  
   Esto se debe a la activación de una regla de correlación **(ID 60204)** que detecta múltiples eventos del grupo `authentication_failed` desde una misma IP en un corto intervalo de tiempo.
 
+
   ![Intentos múltiples desde misma IP - Level 10](images/4625-medium.png)
+
 
 - La regla **60122** identifica eventos 4625 como fallos de autenticación y los agrupa bajo `authentication_failed`.
 - La regla **60204** detecta múltiples eventos de este grupo desde una misma IP en menos de 240 segundos, elevando la alerta a **`rule.level: 10`** y asociándola a la técnica **T1110 – Brute Force** del marco MITRE ATT&CK.
@@ -134,7 +138,9 @@ Esta lógica de correlación predeterminada de Wazuh es útil, pero presenta cie
 Wazuh realiza una correlación básica de eventos relacionados con fallos de autenticación, pero el nivel de severidad asignado no siempre permite distinguir entre intentos triviales y ataques sostenidos.
 Esto motivó a la creación de una regla personalizada, diseñada para detectar específicamente ataques de fuerza bruta por RDP y asignarles una criticidad adecuada.
 
+
 ![4625 post attack](images/dashboard-postattack.png)
+
 
 ---
 

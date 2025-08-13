@@ -16,22 +16,27 @@ La actividad detectada se evalúa bajo el marco **MITRE ATT&CK**, específicamen
 
 ## Objetivos del laboratorio
 
-- Simular y monitorear un ataque de fuerza bruta RDP con **Hydra** y **Wazuh**.
-- Analizar la correlación y severidad de alertas generadas por Wazuh.
-
-
-- Implementar y verificar una **respuesta automática (active-response)** ante el patrón detectado.
-- Documentar evidencias y hallazgos técnicos de utilidad en entornos SOC.
+- Simular un ataque de fuerza bruta RDP desde Kali Linux usando Hydra.
+- Detectar los intentos de autenticación fallida con Wazuh.
+- Evaluar las reglas de correlación predeterminadas.
+- Implementar una regla personalizada para mejorar la detección.
+- Asignar severidad crítica y técnicas MITRE al patrón de ataque.
+- Validar la efectividad de la detección.
+- Proponer medidas de mitigación aplicables en un entorno SOC.
 
 ---
 
-## Infraestructura
+## Infraestructura del laboratorio
 
-| Máquina     | IP              | Rol                       |
-|-------------|-----------------|---------------------------|
-| Windows 10  | 192.168.100.120 | Objetivo, con Wazuh Agent |
-| Ubuntu      | 192.168.100.129 | Servidor Wazuh            |
-| Kali Linux  | 192.168.100.110 | Atacante (Hydra)          |
+El entorno se compone de tres máquinas virtuales conectadas en red local, cada una con un rol específico dentro del escenario de ataque y monitoreo.
+
+| Sistema        | IP              | Rol                              | Descripción breve                    |
+|----------------|-----------------|----------------------------------|--------------------------------------|
+| Windows 10 Pro | 192.168.100.120 | Víctima                          | Servicio RDP habilitado y agente Wazuh |
+| Ubuntu 22.04   | 192.168.100.129 | Wazuh Manager                    | Servidor central de recolección y análisis de eventos |
+| Kali Linux     | 192.168.100.110 | Atacante                         | Ejecución de fuerza bruta con Hydra |
+
+
 
 ---
 
@@ -50,11 +55,13 @@ La actividad detectada se evalúa bajo el marco **MITRE ATT&CK**, específicamen
 
 ## Línea base antes del ataque
 
-Antes de ejecutar el ataque, se estableció una línea base del entorno para validar que no existieran eventos de alta criticidad ni actividad anómala en el servicio RDP.
+Antes de iniciar el ataque, se verificó que el entorno se encontraba estable, sin alertas de severidad alta ni actividad sospechosa relacionada al servicio RDP.
 
-- El panel de overview muestra un agente activo, sin alertas críticas ni severas en las últimas 24 horas.
+- El agente de Wazuh en Windows 10 estaba conectado y activo.
+- En el panel de `Security Events`, no se detectaron eventos críticos ni advertencias relacionadas con autenticación en las últimas 24 horas.
+- Se confirmó que no existía tráfico anómalo hacia el puerto 3389.
 
-![Puerto RDP 3389 detectado con Nmap](images/dashboard-overview2.png)
+![Estado del entorno previo al ataque](images/dashboard-overview2.png)
 
 ---
 
@@ -71,6 +78,12 @@ nmap -p 3389 192.168.100.120
 ```
 ![Puerto RDP 3389 detectado con Nmap](images/nmap-3389.png)
 
+Resultado esperado:
+
+-El puerto 3389 aparece como open.
+-El servicio detectado es ms-wbt-server, correspondiente a Microsoft Terminal Services.
+-Esto confirma que la superficie de ataque está disponible.
+
 ## Ejecución del ataque con Hydra
 
 Desde la máquina atacante (Kali Linux), se ejecutó un ataque de fuerza bruta contra el servicio RDP de la máquina Windows 10 utilizando la herramienta Hydra.  
@@ -81,7 +94,19 @@ Comando utilizado:
  hydra -t 1 -V -f -u -l Administrator -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.120
 
 ```
+Se utilizaron credenciales inválidas para asegurar que todos los intentos generaran eventos de autenticación fallida (**Event ID 4625**) en el host Windows.
 ![Bruteforce Hydra](images/hydra-bruteforce2.png)
+
+
+| Parámetro         | Descripción                                                                 |
+|-------------------|-----------------------------------------------------------------------------|
+| `-t 1`            | Ejecuta 1 tarea simultánea (reduce velocidad para evitar bloqueo por DoS)  |
+| `-V`              | Muestra cada intento en tiempo real (modo verbose)                         |
+| `-f`              | Finaliza el ataque al encontrar la primera contraseña válida               |
+| `-u`              | Intenta todas las contraseñas con un solo usuario antes de pasar al siguiente |
+| `-l Administrator`| Usuario objetivo (en este caso, el administrador por defecto de Windows)   |
+| `-P`              | Ruta al diccionario de contraseñas (wordlist), en este caso `rockyou.txt`  |
+
 
 ---
 
@@ -153,3 +178,11 @@ La alerta fue etiquetada con las técnicas del marco **MITRE ATT&CK**:
 
 Esto confirma que la regla personalizada cumplió con su propósito, mejorando la visibilidad y criticidad asignada a este patrón de ataque.
 
+---
+
+## Conclusión
+
+Este laboratorio demuestra cómo un ataque de fuerza bruta RDP puede ser detectado eficazmente mediante reglas de correlación personalizadas en Wazuh.  
+La implementación de una regla específica permitió elevar la criticidad de la alerta, asociarla con técnicas MITRE ATT&CK relevantes y mejorar la visibilidad del incidente desde una perspectiva SOC.
+
+Como siguiente paso, se podría automatizar la respuesta mediante Active Response, bloquear la IP atacante o generar tickets automáticamente en un sistema de gestión de incidentes.

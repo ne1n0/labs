@@ -94,7 +94,10 @@ Comando utilizado:
 
 ```
 
+
 Se utilizaron credenciales inválidas para asegurar que todos los intentos generaran eventos de autenticación fallida (**Event ID 4625**) en el host Windows.
+
+
 ![Bruteforce Hydra](images/hydra-bruteforce2.png)
 
 

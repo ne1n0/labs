@@ -22,7 +22,6 @@ La actividad detectada se evalúa bajo el marco **MITRE ATT&CK**, específicamen
 - Implementar una regla personalizada para mejorar la detección.
 - Asignar severidad crítica y técnicas MITRE al patrón de ataque.
 - Validar la efectividad de la detección.
-- Proponer medidas de mitigación aplicables en un entorno SOC.
 
 ---
 
@@ -91,9 +90,10 @@ El objetivo fue forzar múltiples intentos de inicio de sesión fallidos en un c
 
 Comando utilizado:
 ```bash
- hydra -t 1 -V -f -u -l Administrator -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.120
+ hydra -t 1 -V -f -l Administrator -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.120
 
 ```
+
 Se utilizaron credenciales inválidas para asegurar que todos los intentos generaran eventos de autenticación fallida (**Event ID 4625**) en el host Windows.
 ![Bruteforce Hydra](images/hydra-bruteforce2.png)
 
@@ -103,7 +103,6 @@ Se utilizaron credenciales inválidas para asegurar que todos los intentos gener
 | `-t 1`            | Ejecuta 1 tarea simultánea (reduce velocidad para evitar bloqueo por DoS)  |
 | `-V`              | Muestra cada intento en tiempo real (modo verbose)                         |
 | `-f`              | Finaliza el ataque al encontrar la primera contraseña válida               |
-| `-u`              | Intenta todas las contraseñas con un solo usuario antes de pasar al siguiente |
 | `-l Administrator`| Usuario objetivo (en este caso, el administrador por defecto de Windows)   |
 | `-P`              | Ruta al diccionario de contraseñas (wordlist), en este caso `rockyou.txt`  |
 

@@ -1,116 +1,30 @@
-# Laboratorio de Detección de Escaneo de Red Interno con Splunk
+# 🧪 Laboratorio de Ataque en Cadena con Splunk Enterprise
 
 ---
 
-## 🌐 Introducción
+## 📝 Introducción  
 
-Este laboratorio tiene como objetivo simular un escenario de reconocimiento dentro de una red interna, donde un atacante intenta descubrir otros sistemas mediante técnicas de escaneo.
+Este laboratorio tiene como propósito **simular un ataque en cadena dentro de un entorno controlado**, utilizando **Splunk Enterprise** como plataforma central de monitoreo y análisis de seguridad.  
 
-Utilizaremos **Splunk** para analizar los patrones generados por la herramienta **Nmap** y aprender a detectar actividad sospechosa basada en el volumen y tipo de conexiones iniciadas.
+La idea es reproducir, de forma progresiva, varias fases de la cadena de ataque que un adversario real podría llevar a cabo en una red corporativa. Cada fase genera eventos de seguridad en los sistemas comprometidos, los cuales son enviados a Splunk mediante **Universal Forwarder**, permitiendo su detección, correlación y análisis.  
 
----
+El flujo general del laboratorio está inspirado en el modelo de la **Cyber Kill Chain** y técnicas de **MITRE ATT&CK**, siguiendo este orden:  
 
-## 📊 Objetivos
+1. **Reconocimiento y fuerza bruta RDP** → Múltiples intentos fallidos de autenticación desde una máquina atacante (Kali).  
+2. **Acceso inicial** → Inicio de sesión exitoso tras los intentos fallidos, indicando una posible cuenta comprometida.  
+3. **Persistencia / Ejecución de malware** → Descarga y ejecución de un binario sospechoso en el endpoint Windows 10.  
+4. **Movimiento lateral** → Intentos de conexión hacia otros recursos de la red.  
+5. **Acciones sobre el objetivo** → Bloqueo de cuentas y actividades que degradan la disponibilidad del sistema.  
 
-* Simular un escaneo de red horizontal y vertical.
-* Capturar y visualizar los logs de red en Splunk.
-* Aplicar consultas SPL para detectar escaneos.
-* Crear alertas automáticas por patrones de escaneo.
-* Relacionar la actividad con técnicas MITRE ATT\&CK.
+Este diseño permite no solo validar búsquedas y detecciones puntuales (por ejemplo, un ataque de fuerza bruta), sino también demostrar cómo los analistas pueden **reconstruir toda la cadena de ataque en Splunk**, desde el acceso inicial hasta el impacto final.  
 
----
+##  Infraestructura del Laboratorio  
 
-## 🚀 Infraestructura
+| Componente            | Rol                              |
+|-----------------------|------------------------------------------------------|
+| **Windows Server 2022** | Servidor Splunk Enterprise (SIEM)                   |
+| **Windows 10**         | Endpoint víctima con Universal Forwarder             |
+| **Kali Linux**         | Máquina atacante que ejecuta las distintas fases     |
 
-| Máquina    | IP              | Rol             |
-| ---------- | --------------- | --------------- |
-| Kali Linux | 192.168.100.110 | Atacante (Nmap) |
-| Windows 10 | 192.168.100.120 | Víctima         |
-| Ubuntu     | 192.168.100.129 | Servidor Splunk |
 
----
-
-## 🔧 Herramientas utilizadas
-
-| Herramienta      | Descripción                             |
-| ---------------- | --------------------------------------- |
-| Nmap             | Escaneo de red (puertos/hosts)          |
-| Splunk           | Análisis y visualización de logs        |
-| Wireshark o Zeek | (Opcional) Captura o generación de logs |
-
----
-
-## ⚖️ Simulación de escaneo
-
-Desde la máquina atacante Kali:
-
-Escaneo horizontal:
-
-```bash
-nmap -sS 192.168.100.0/24
-```
-
-Escaneo de puertos vertical:
-
-```bash
-nmap -sS -p- 192.168.100.120
-```
-
----
-
-## 🔢 Recolección de logs
-
-* Habilitar el logueo de conexiones en firewall o usar logs de IDS/Zeek.
-* O usar Wireshark para capturar el pcap y convertirlo a CSV para subirlo a Splunk.
-
----
-
-## 🤖 Análisis en Splunk (SPL)
-
-Ejemplo de consulta para detectar múltiples conexiones por IP:
-
-```spl
-index=red_logs action=blocked OR protocol=tcp
-| stats count by src_ip, dest_ip, dest_port
-| where count > 100
-```
-
----
-
-## 📊 Visualización
-
-* Heatmap de IP origen vs puertos destino.
-* Top 10 IPs con más intentos.
-* Timeline de volumen de conexiones por minuto.
-
----
-
-## ⚠️ Alerta programada
-
-* Disparar alerta si una IP genera >200 intentos a distintos puertos en <1 minuto.
-* Otra alerta si una misma IP intenta conectarse a >10 hosts en <5 minutos.
-
----
-
-## 🪧 MITRE ATT\&CK relacionado
-
-| Técnica                   | ID    |
-| ------------------------- | ----- |
-| Network Service Discovery | T1046 |
-| Active Scanning           | T1595 |
-| Remote System Discovery   | T1018 |
-
----
-
-## 📂 Evidencias a documentar
-
-* Captura del escaneo en Kali (pantalla o comandos).
-* Paneles de Splunk con gráficos.
-* Logs analizados.
-* Captura de alerta generada.
-
----
-
-## 📊 Conclusión
-
-Este laboratorio demuestra la utilidad de Splunk para identificar tácticas comunes de reconocimiento utilizadas por atacantes en redes internas. Detectar escaneos tempranamente permite activar medidas proactivas de contención antes de una intrusión mayor.
+El objetivo final es evidenciar cómo Splunk puede centralizar logs, aplicar consultas, y correlacionar eventos para detectar un ataque complejo de extremo a extremo.  

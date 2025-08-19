@@ -90,3 +90,24 @@ Este ataque se basa en el uso de un nombre de usuario legítimo previamente iden
 ```bash
 
 sudo hydra -t 1 -V -f -u -l Usuario -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.120
+
+```
+ - -l Usuario: es el usuario objetivo
+ - -P rockyou.txt: Diccionario de contraseñas.
+ - rdp:// : Protocolo objetivo
+
+![Ataque hydra to Usuario](/images/usuario-atck.png)
+
+Cada intento fallido de autenticación genera un evento con ID 4625 en el visor de eventos de Windows, que luego es recolectado por el Universal Forwarder y enviado a Splunk.
+
+Estos eventos incluyen detalles como:
+
+- Usuario atacado: `TargetUserName = Usuario`
+- IP de origen: Kali Linux (`IpAddress`)
+- Estado de autenticación fallida: `Status = 0xc000006d`
+
+![Eventos 4625 para Usuario](/images/4625.png)
+
+Debido a las políticas de seguridad configuradas, el sistema bloquea automáticamente la cuenta tras 10 intentos fallidos consecutivos. Esto genera un evento con ID 4740 que indica explícitamente que la cuenta fue bloqueada.
+
+![Evento 4740 - Cuenta bloqueada](/images/4740.png)

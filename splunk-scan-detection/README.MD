@@ -96,7 +96,7 @@ sudo hydra -t 1 -V -f -u -l Usuario -P /usr/share/wordlists/rockyou.txt rdp://19
  - -P rockyou.txt: Diccionario de contraseñas.
  - rdp:// : Protocolo objetivo
 
-![Ataque hydra to Usuario](/images/usuario-atck.png)
+![Ataque hydra to Usuario](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/usuario-atck.png)
 
 Cada intento fallido de autenticación genera un evento con ID 4625 en el visor de eventos de Windows, que luego es recolectado por el Universal Forwarder y enviado a Splunk.
 
@@ -106,8 +106,8 @@ Estos eventos incluyen detalles como:
 - IP de origen: Kali Linux (`IpAddress`)
 - Estado de autenticación fallida: `Status = 0xc000006d`
 
-![Eventos 4625 para Usuario](splunk-scan-detection/images/4625.png)
+![Eventos 4625 para Usuario](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/4625.png)
 
 Debido a las políticas de seguridad configuradas, el sistema bloquea automáticamente la cuenta tras 10 intentos fallidos consecutivos. Esto genera un evento con ID 4740 que indica explícitamente que la cuenta fue bloqueada.
 
-![Evento 4740 - Cuenta bloqueada](splunk-scan-detection/images/4740.png)
+![Evento 4740 - Cuenta bloqueada](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/4740.png)

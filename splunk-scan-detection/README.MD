@@ -6,29 +6,24 @@
 
 Este laboratorio tiene como propósito **simular un ataque en cadena dentro de un entorno controlado**, utilizando **Splunk Enterprise** como plataforma central de monitoreo y análisis de seguridad.  
 
-La idea es reproducir, de forma progresiva, varias fases de la cadena de ataque que un adversario real podría llevar a cabo en una red corporativa. Cada fase genera eventos de seguridad en los sistemas comprometidos, los cuales son enviados a Splunk mediante **Universal Forwarder**, permitiendo su detección, correlación y análisis.  
+El laboratorio reproduce, paso a paso, distintas fases reales de un ataque cibernético, simulando el comportamiento de un adversario en un entorno corporativo. Cada fase genera eventos de seguridad en los sistemas comprometidos, los cuales son enviados a Splunk mediante **Universal Forwarder**, permitiendo su detección, correlación y análisis.  
 
 El flujo general del laboratorio está inspirado en el modelo de la **Cyber Kill Chain** y técnicas de **MITRE ATT&CK**, siguiendo este orden:  
 
-1. **Reconocimiento y fuerza bruta RDP** → Múltiples intentos fallidos de autenticación desde una máquina atacante (Kali).  
-2. **Acceso inicial** → Inicio de sesión exitoso tras los intentos fallidos, indicando una posible cuenta comprometida.  
-3. **Persistencia / Ejecución de malware** → Descarga y ejecución de un binario sospechoso en el endpoint Windows 10.  
-4. **Movimiento lateral** → Intentos de conexión hacia otros recursos de la red.  
-5. **Acciones sobre el objetivo** → Bloqueo de cuentas y actividades que degradan la disponibilidad del sistema.  
-
-
-
+| Fase | Técnica simulada           | Eventos generados       | MITRE     |
+| ---- | -------------------------- | ----------------------- | --------- |
+| 1    | Fuerza bruta RDP           | 4625, 4740              | T1110.001 |
+| 2    | Reconocimiento post-acceso | 4688                    | T1059     |
+| 3    | Descarga de malware        | 4688 + conexión externa | T1105     |
+| 4    | Persistencia               | 4657 / 4688             | T1547     |
 
 ##  Infraestructura del Laboratorio  
 
 | Componente            | Rol                              |
 |-----------------------|------------------------------------------------------|
-| **Windows Server 2022** | Servidor Splunk Enterprise (SIEM)                   |
-| **Windows 10**         | Endpoint víctima con Universal Forwarder             |
-| **Kali Linux**         | Máquina atacante que ejecuta las distintas fases     |
-
-
-
+| **Windows Server 2022** 192.168.100.128 | Servidor Splunk Enterprise (SIEM)                   |
+| **Windows 10**  192.168.100.120      | Endpoint víctima con Universal Forwarder             |
+| **Kali Linux**  192.168.100.110       | Máquina atacante que ejecuta las distintas fases     |
 
 ## Escenarios de Ataque 
 
@@ -85,29 +80,48 @@ Se realizaron dos variantes del ataque de fuerza bruta desde Kali Linux, utiliza
 
 ###  Variante 1: Ataque a un usuario específico conocido
 
-Este ataque se basa en el uso de un nombre de usuario legítimo previamente identificado ("Usuario" para este caso) y se prueban múltiples contraseñas contra esa cuenta.
+En esta variante, se asume que el atacante ya conoce un nombre de usuario válido. Usando Hydra, lanza un ataque de fuerza bruta dirigido exclusivamente a esa cuenta, probando múltiples contraseñas extraídas del diccionario rockyou.txt.
 
 ```bash
-
-sudo hydra -t 1 -V -f -u -l Usuario -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.120
-
+sudo hydra -t 1 -V -f -l Usuario -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.120
 ```
- - -l Usuario: es el usuario objetivo
- - -P rockyou.txt: Diccionario de contraseñas.
- - rdp:// : Protocolo objetivo
+![Ataque hydra to Usuario](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/user-atk.png)
 
-![Ataque hydra to Usuario](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/usuario-atck.png)
+ - -l: Especifica el usuario en el ataque
+ - -P : Especifica la dura donde se encuentra el diccionario de  a utilizazr.
+ - -t: Especifica la cantidad de hilo a utilizar.
+ - -V: Verbose
+ - -f: Detiene el proceso cuando encuentra la contraseña correcta.
 
 Cada intento fallido de autenticación genera un evento con ID 4625 en el visor de eventos de Windows, que luego es recolectado por el Universal Forwarder y enviado a Splunk.
 
 Estos eventos incluyen detalles como:
 
-- Usuario atacado: `TargetUserName = Usuario`
-- IP de origen: Kali Linux (`IpAddress`)
-- Estado de autenticación fallida: `Status = 0xc000006d`
+| Campo                        | Valor                                                 |
+| ---------------------------- | ----------------------------------------------------- |
+| **EventCode**                | 4625 (Error al iniciar sesión)                        |
+| **Usuario atacado**          | `Usuario`                                             |
+| **Motivo del error**         | Nombre de usuario desconocido o contraseña incorrecta |
+| **Estado**                   | `0xC000006D`                                          |
+| **Subestado**                | `0xC000006A`                                          |
+| **Equipo de origen**         | `kali`                                                |
+| **Dirección IP de origen**   | `192.168.100.110`                                     |
+| **Tipo de inicio de sesión** | 3 (red/servicio de red)                               |
+
+
+A continuación, se muestra cómo aparece este evento en Splunk
 
 ![Eventos 4625 para Usuario](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/4625.png)
 
-Debido a las políticas de seguridad configuradas, el sistema bloquea automáticamente la cuenta tras 10 intentos fallidos consecutivos. Esto genera un evento con ID 4740 que indica explícitamente que la cuenta fue bloqueada.
+Tras múltiples intentos fallidos consecutivos (10 en este caso), Windows bloquea automáticamente la cuenta objetivo. Esto queda registrado con el evento 4740
+
+| Campo                            | Valor                              |
+| -------------------------------- | ---------------------------------- |
+| **EventCode**                    | 4740 (Cuenta de usuario bloqueada) |
+| **Cuenta bloqueada**             | `Usuario`                          |
+| **Equipo origen del bloqueo**    | `kali`                             |
+| **Nombre de la máquina víctima** | `DESKTOP-LGSII8V`                  |
+| **Dominio**                      | WORKGROUP                          |
+
 
 ![Evento 4740 - Cuenta bloqueada](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/4740.png)

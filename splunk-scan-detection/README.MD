@@ -19,11 +19,11 @@ El flujo general del laboratorio está inspirado en el modelo de la **Cyber Kill
 
 ##  Infraestructura del Laboratorio  
 
-| Componente            | Rol                              |
-|-----------------------|------------------------------------------------------|
-| **Windows Server 2022** 192.168.100.128 | Servidor Splunk Enterprise (SIEM)                   |
-| **Windows 10**  192.168.100.120      | Endpoint víctima con Universal Forwarder             |
-| **Kali Linux**  192.168.100.110       | Máquina atacante que ejecuta las distintas fases     |
+| Componente             | Dirección IP       | Rol                                                |
+|------------------------|--------------------|-----------------------------------------------------|
+| **Windows Server 2022** | 192.168.100.128     | Servidor Splunk Enterprise (SIEM)                   |
+| **Windows 10**          | 192.168.100.120     | Endpoint víctima con Universal Forwarder            |
+| **Kali Linux**          | 192.168.100.110     | Máquina atacante que ejecuta las distintas fases    |
 
 ## Escenarios de Ataque 
 

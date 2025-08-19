@@ -106,8 +106,8 @@ Estos eventos incluyen detalles como:
 - IP de origen: Kali Linux (`IpAddress`)
 - Estado de autenticación fallida: `Status = 0xc000006d`
 
-![Eventos 4625 para Usuario](/images/4625.png)
+![Eventos 4625 para Usuario](splunk-scan-detection/images/4625.png)
 
 Debido a las políticas de seguridad configuradas, el sistema bloquea automáticamente la cuenta tras 10 intentos fallidos consecutivos. Esto genera un evento con ID 4740 que indica explícitamente que la cuenta fue bloqueada.
 
-![Evento 4740 - Cuenta bloqueada](/images/4740.png)
+![Evento 4740 - Cuenta bloqueada](splunk-scan-detection/images/4740.png)

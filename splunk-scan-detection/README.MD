@@ -88,9 +88,9 @@ sudo hydra -t 1 -V -f -l Usuario -P /usr/share/wordlists/rockyou.txt rdp://192.1
 ![Ataque hydra to Usuario](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/user-atk.png)
 
  - -l: Especifica el usuario en el ataque
- - -P : Especifica la dura donde se encuentra el diccionario de  a utilizazr.
- - -t: Especifica la cantidad de hilo a utilizar.
- - -V: Verbose
+ - -P : Ruta al diccionario de contraseñas (en este caso rockyou.txt)
+ - -t: Número de hilos en paralelo
+ - -V: Modo verbose para mostrar cada intento
  - -f: Detiene el proceso cuando encuentra la contraseña correcta.
 
 Cada intento fallido de autenticación genera un evento con ID 4625 en el visor de eventos de Windows, que luego es recolectado por el Universal Forwarder y enviado a Splunk.
@@ -113,7 +113,7 @@ A continuación, se muestra cómo aparece este evento en Splunk
 
 ![Eventos 4625 para Usuario](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/4625.png)
 
-Tras múltiples intentos fallidos consecutivos (10 en este caso), Windows bloquea automáticamente la cuenta objetivo. Esto queda registrado con el evento 4740
+Cuando el sistema detecta 10 intentos fallidos consecutivos, bloquea automáticamente la cuenta. Este evento queda reflejado con el ID 4740 en los registros de seguridad
 
 | Campo                            | Valor                              |
 | -------------------------------- | ---------------------------------- |
@@ -123,5 +123,69 @@ Tras múltiples intentos fallidos consecutivos (10 en este caso), Windows bloque
 | **Nombre de la máquina víctima** | `DESKTOP-LGSII8V`                  |
 | **Dominio**                      | WORKGROUP                          |
 
-
 ![Evento 4740 - Cuenta bloqueada](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/4740.png)
+
+En esta variante, el atacante no conoce previamente qué usuarios existen en el sistema. El enfoque consiste en probar varios nombres de usuario con una contraseña común (ataque de tipo username enumeration). Esto permite al adversario identificar cuentas válidas dentro del sistema objetivo.
+
+El ataque se ejecutó utilizando Hydra, probando múltiples usuarios listados en un diccionario.
+
+```bash
+sudo hydra -V -f -u -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.120
+```
+
+![Evento 4740 - Cuenta bloqueada](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/users-atk2.png)
+
+Cada intento fallido genera eventos 4625 (error de inicio de sesión). La diferencia frente a la Variante 1 es que ahora el campo TargetUserName cambia en cada evento, reflejando los distintos usuarios probados.
+
+| Campo                        | Valor (ejemplo)                                       |
+| ---------------------------- | ----------------------------------------------------- |
+| **EventCode**                | 4625 (Error al iniciar sesión)                        |
+| **Usuario atacado**          | `user1`, `user2`, `test`, `admin`, etc.               |
+| **Motivo del error**         | Nombre de usuario desconocido o contraseña incorrecta |
+| **Estado**                   | `0xC000006D`                                          |
+| **Subestado**                | `0xC000006A`                                          |
+| **Equipo de origen**         | `kali`                                                |
+| **Dirección IP de origen**   | `192.168.100.110`                                     |
+| **Tipo de inicio de sesión** | 3 (red/servicio de red)                               |
+
+### Diferencias clave con la Variante 1
+
+En la Variante 1, el atacante dirige todos los intentos a un usuario específico.
+En la Variante 2, los intentos se distribuyen entre varios usuarios, permitiendo identificar cuáles existen en el sistema (enumeración).
+En este caso, no se alcanzó el bloqueo automático de la cuenta, ya que no se superó el umbral de intentos fallidos para un mismo usuario.
+
+##  Consideración sobre normalización de eventos
+
+El sistema operativo Windows 10 utilizado como víctima se encuentra en **idioma español**, lo que afecta los nombres de campo dentro de los eventos del visor de seguridad.
+
+Para permitir búsquedas eficaces en Splunk, fue necesario instalar el **Technology Add-on (TA) para Windows** en el servidor Splunk Enterprise.
+
+  Este add-on normaliza los eventos, extrayendo campos clave como:
+
+- `TargetUserName`
+- `src_ip` (`IpAddress`)
+- `EventCode`
+- `ComputerName`
+
+Gracias a esto, las búsquedas SPL utilizadas en este laboratorio se pueden ejecutar de forma **estándar y portable**, sin depender del idioma del sistema operativo fuente.
+
+##  Consultas SPL utilizadas
+
+Para detectar los eventos generados por el ataque de fuerza bruta, se utilizaron consultas en Splunk basadas en los códigos de evento 4625 (inicio de sesión fallido) y 4740 (cuenta bloqueada). A continuación se detallan las búsquedas junto con su propósito, lógica, resultados esperados y capturas asociadas.
+
+---
+
+###  Variante 1 
+
+**Objetivo:** Identificar múltiples intentos fallidos desde una misma IP contra un mismo usuario (`TargetUserName`).
+
+```spl
+index=main EventCode=4625 TargetUserName="Usuario"
+| stats count by src_ip, TargetUserName
+| where count >= 5
+```
+
+- Esta consulta cuenta la cantidad de fallos por usuario e IP.
+- Es útil cuando el atacante conoce la cuenta objetivo y prueba muchas contraseñas.
+
+![spl - ss01](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/ss01.png)

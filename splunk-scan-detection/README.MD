@@ -125,7 +125,9 @@ Cuando el sistema detecta 10 intentos fallidos consecutivos, bloquea automática
 
 ![Evento 4740 - Cuenta bloqueada](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/4740.png)
 
-En esta variante, el atacante no conoce previamente qué usuarios existen en el sistema. El enfoque consiste en probar varios nombres de usuario con una contraseña común (ataque de tipo username enumeration). Esto permite al adversario identificar cuentas válidas dentro del sistema objetivo.
+###  Variante 2: Ataque a multiples usuarios
+
+En esta variante, el atacante no conoce previamente qué usuarios existen en el sistema. El enfoque consiste en probar varios nombres de usuario con una contraseña común (ataque de tipo username enumeration). Esto permite identificar cuentas válidas dentro del sistema objetivo.
 
 El ataque se ejecutó utilizando Hydra, probando múltiples usuarios listados en un diccionario.
 
@@ -189,3 +191,27 @@ index=main EventCode=4625 TargetUserName="Usuario"
 - Es útil cuando el atacante conoce la cuenta objetivo y prueba muchas contraseñas.
 
 ![spl - ss01](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/ss01.png)
+
+
+###  Variante 2
+
+**Objetivo:** Detectar múltiples intentos fallidos desde una misma IP(`192.168.100.110`), pero distribuidos entre varios usuarios distintos.
+
+![spl - ss01](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/ss02.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

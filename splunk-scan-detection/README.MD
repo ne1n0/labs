@@ -105,34 +105,51 @@ Con esta búsqueda, Splunk es capaz de detectar de forma automática un patrón 
 
 ## Explicación de la consulta
 
-1. index=windows EventCode=4625 : filtra únicamente los eventos de seguridad con ID 4625 (Logon Failed) en el índice windows.
-2. earliest=-5m@m latest=now : limita la búsqueda a los últimos 5 minutos, creando una ventana de tiempo de correlación.
-3. stats count by src_ip, user : agrupa los resultados por IP de origen y usuario atacado, contando la cantidad de intentos fallidos.
-4. where count > 10 : aplica un umbral de más de 10 intentos fallidos en 5 minutos, criterio utilizado para identificar actividad de fuerza bruta.
+1. **index=windows EventCode=4625** : filtra únicamente los eventos de seguridad con ID 4625 (Logon Failed) en el índice windows.
+2. **earliest=-5m@m latest=now** : limita la búsqueda a los últimos 5 minutos, creando una ventana de tiempo de correlación.
+3. **stats count by src_ip, user** : agrupa los resultados por IP de origen y usuario atacado, contando la cantidad de intentos fallidos.
+4. **where count > 10** : aplica un umbral de más de 10 intentos fallidos en 5 minutos, criterio utilizado para identificar actividad de fuerza bruta.
 
 ## Resultado obtenido
 
-La ejecución de la consulta muestra que una misma IP atacante (192.168.100.110) realizó múltiples intentos de autenticación fallida contra diferentes cuentas de usuario (admin, root, test, oracle, etc.), superando el umbral establecido.
+La ejecución de la consulta muestra que una misma IP atacante (**192.168.100.110**) realizó múltiples intentos de autenticación fallida contra diferentes cuentas de usuario (admin, root, test, oracle, etc.), superando el umbral establecido.
 Este patrón corresponde al comportamiento típico de un ataque de fuerza bruta con diccionario.
 
 ![detection de ataque](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/attack-detection.png)
 
-## Configuracion de la Alerta en Splunk
+## Configuración de la Alerta en Splunk
 
-Una vez obtenida la búsqueda de correlación que detecta múltiples intentos fallidos en un intervalo de 5 minutos, se configuró una alerta programada en Splunk para automatizar la detección.
+La búsqueda final de correlación se utilizó como base para crear una alerta en Splunk.  
+El criterio fue detectar **más de 10 intentos fallidos en una ventana de 5 minutos** desde la misma IP.  
+Cuando la condición se cumple, Splunk ejecuta una acción automática de **envío de correo** al analista SOC.
 
-Parámetros utilizados para la alerta:
+En las siguientes capturas se observa la configuración de la alerta:
 
-- Título de la alerta: RDP – Fuerza Bruta
-- Tipo: Real-time (continuously)
-- Consulta base: 
-```bash
-index=windows EventCode=4625 earliest=-5m@m latest=now
-| stats count by src_ip, user
-| where count > 10
-```
-- Condición: El número de resultados > 0
-- Acción asociada:
-      - Envío de notificación por correo electrónico a fabiansantana@...
-      - Asunto del correo: “Alerta – Fuerza Bruta RDP detectada”
-      - Contenido del correo: resumen de la búsqueda, incluyendo los campos src_ip, user y count.
+- **Programación y condiciones de disparo**: la alerta corre cada 5 minutos y se activa cuando el número de resultados es mayor que 0.  
+![alerta-condiciones](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/alert-conditions.png)
+
+- **Acciones configuradas**: envío de correo a la casilla del analista con prioridad alta, incluyendo detalles del ataque detectado.  
+![alerta-correo](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/alert-email-config.png)
+
+
+---
+
+## Notificación por Correo
+
+Cuando la condición de la alerta se cumple, Splunk envía automáticamente un correo al analista SOC.  
+El correo contiene:
+
+- **IP de origen del ataque (`src_ip`)**  
+- **Usuario objetivo (`user`)**  
+- **Cantidad de intentos fallidos (`count`)**  
+- **Enlace directo a Splunk** para continuar la investigación  
+
+![correo-alerta](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/mail-alert.png)
+
+---
+
+## Conclusión del Hito
+
+Con la creación de la alerta y la notificación por correo, queda implementada la fase de **detección automatizada** del laboratorio.  
+El siguiente paso será integrar una **Respuesta Automática (AR)** para bloquear la IP atacante en el firewall del endpoint y cerrar así el ciclo de detección y respuesta.
+

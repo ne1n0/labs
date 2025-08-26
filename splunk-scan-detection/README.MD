@@ -81,7 +81,7 @@ Este evento evidencia un intento de inicio de sesión fallido desde la máquina 
 - **Workstation Name:** kali 
 - **Source Network Address:** 192.168.100.110  
 
-![dashboard event](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/event-detail-3.png)
+![dashboard event](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/detail-3.png)
 
 Estos campos son los que permiten a Splunk identificar tanto el origen del ataque como el usuario objetivo.
 
@@ -120,3 +120,4 @@ La ejecución de la consulta muestra que una misma IP atacante (192.168.100.110)
 Este patrón corresponde al comportamiento típico de un ataque de fuerza bruta con diccionario.
 
 ![detection de ataque](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/attack-detection.png)
+

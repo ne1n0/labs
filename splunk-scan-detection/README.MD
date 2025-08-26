@@ -26,12 +26,12 @@ Este escenario se ubica dentro de la fase de **Acceso Inicial** de la *Cyber Kil
 
 ##  Componentes Involucrados
 
-| Rol                | Detalles                                        |
-|-------------------|-------------------------------------------------|
-| Máquina víctima    | Windows 10 con servicio de Escritorio Remoto (RDP) habilitado.                 |
-| Máquina atacante   | Kali Linux, ejecutando Hydra para el ataque de fuerza bruta.         |
-| Recolector SIEM    | Splunk Enterprise instalado en Windows Server 2022.     |
-| Agente de envío    | Splunk Universal Forwarder en Windows 10 para transmitir logs al SIEM.        |
+| Rol                | Detalles                                                                 | Dirección IP       |
+|--------------------|--------------------------------------------------------------------------|--------------------|
+| Máquina víctima    | Windows 10 con servicio de Escritorio Remoto (RDP) habilitado.           | 192.168.100.140    |
+| Máquina atacante   | Kali Linux, ejecutando Hydra para el ataque de fuerza bruta.             | 192.168.100.110    |
+| Recolector SIEM    | Windows Server 2022 con Splunk Enterprise instalado.                     | 192.168.100.128    |
+| Agente de envío    | Splunk Universal Forwarder en Windows 10 para transmitir logs al SIEM.   | 192.168.100.140    |
 
 ---
 
@@ -39,7 +39,7 @@ Este escenario se ubica dentro de la fase de **Acceso Inicial** de la *Cyber Kil
 
 El ataque se llevó a cabo desde la máquina **Kali Linux** utilizando la herramienta **Hydra** para realizar un ataque de fuerza bruta contra el servicio RDP del endpoint Windows.  
 
-En este escenario, el atacante probó **varios nombres de usuario** combinados con un diccionario de contraseñas, con el objetivo de forzar accesos remotos no autorizados.  
+En este escenario, se probó **varios nombres de usuario** combinados con un diccionario de contraseñas, con el objetivo de forzar accesos remotos no autorizados.  
 
 Recursos utilizados:  
 
@@ -48,9 +48,9 @@ Recursos utilizados:
 
 Este procedimiento generó múltiples eventos de autenticación fallida (**Event ID 4625**) en el endpoint Windows, los cuales fueron enviados a Splunk para su posterior detección y correlación.
 
-
+## Comando utilizado en Hydra
 ```bash
-sudo hydra -V -f -u -L -I /usr/share/seclists/Usernames/top-usernames-shortlist.txt -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.140
+sudo hydra -V -f -u -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -P /usr/share/wordlists/rockyou.txt rdp://192.168.100.140
 ```
 
 - -V  Muestra cada intento de autenticación (verbose).
@@ -58,25 +58,25 @@ sudo hydra -V -f -u -L -I /usr/share/seclists/Usernames/top-usernames-shortlist.
 - -u  Intenta todas las contraseñas por usuario antes de cambiar de usuario.
 - -L  Archivo con lista de posibles usuarios.
 - -P  Archivo con diccionario de contraseñas.
-- -I  Evita pausa de 10 segundos.
 
-rdp:// → Especifica el protocolo y la IP del objetivo.
+rdp:// : Especifica el servicio RDP y la dirección IP de la máquina víctima
+
+![ataque con hydra](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/attack-hydra.png)
+
 
 Este ataque genera múltiples eventos de inicio de sesión fallido (4625) en los registros de seguridad de Windows, los cuales son enviados a Splunk para su análisis y detección.
 
 
-![ataque con hydra](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/attack-hydra.png)
-
 ## Eventos recolectados en Splunk
 
 En la vista de **Events** se observa un registro con ID **4625 - An account failed to log on**, generado en la máquina víctima.  
-Este evento evidencia un intento de inicio de sesión fallido desde la máquina atacante:
+Este evento evidencia un intento de inicio de sesión fallido desde la máquina atacante(en la correlación posterior también aparecen otros usuarios comunes (`admin`, `root`, `test`, `oracle`, etc.), lo que refuerza el patrón típico de un ataque de fuerza bruta.) :
 
 - **Event Code:** 4625 
-- **Computer Name:**  DESKTOP-5QGOT2G 
+- **Computer Name:**  DESKTOP-5QGOT2G (corresponde a la máquina víctima Windows 10 con IP 192.168.100.140)
 - **Account Name:** puppet  
 - **Failure Reason:** Unknown user name or bad password  
-- **Workstation Name:** kali 
+- **Workstation Name:** kali  
 - **Source Network Address:** 192.168.100.110  
 
 ![dashboard event](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/detail-3.png)
@@ -85,7 +85,7 @@ Estos campos son los que permiten a Splunk identificar tanto el origen del ataqu
 
 ##  Correlación con SPL
 
-Para correlacionar múltiples intentos fallidos, se utilizó la siguiente búsqueda:
+Una vez recolectados los eventos, se utilizó la siguiente búsqueda para obtener una visión general de los intentos fallidos:  
 
 ```spl
 index=windows EventCode=4625 
@@ -94,9 +94,7 @@ index=windows EventCode=4625
 ![dashboard event](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/event-detail.png)
 
 
-Una vez identificada la correlación de intentos fallidos, la búsqueda se refinó para incluir una ventana de tiempo de 5 minutos y un umbral de más de 10 intentos por IP/usuario. Esta versión final de la consulta servirá como base para la alerta de fuerza bruta en Splunk:
-
-
+Posteriormente, la búsqueda se refinó para aplicar una ventana de 5 minutos y establecer un umbral de más de 10 intentos por combinación de IP y usuario. Esta versión final se utilizó como base para configurar la alerta de fuerza bruta en Splunk:
 ```bash
 index=windows EventCode=4625 earliest=-5m@m latest=now
 | stats count by src_ip, user
@@ -105,17 +103,36 @@ index=windows EventCode=4625 earliest=-5m@m latest=now
 
 Con esta búsqueda, Splunk es capaz de detectar de forma automática un patrón de ataque en tiempo casi real
 
-Explicación de la consulta
+## Explicación de la consulta
 
 1. index=windows EventCode=4625 : filtra únicamente los eventos de seguridad con ID 4625 (Logon Failed) en el índice windows.
 2. earliest=-5m@m latest=now : limita la búsqueda a los últimos 5 minutos, creando una ventana de tiempo de correlación.
 3. stats count by src_ip, user : agrupa los resultados por IP de origen y usuario atacado, contando la cantidad de intentos fallidos.
 4. where count > 10 : aplica un umbral de más de 10 intentos fallidos en 5 minutos, criterio utilizado para identificar actividad de fuerza bruta.
 
-Resultado obtenido
+## Resultado obtenido
 
 La ejecución de la consulta muestra que una misma IP atacante (192.168.100.110) realizó múltiples intentos de autenticación fallida contra diferentes cuentas de usuario (admin, root, test, oracle, etc.), superando el umbral establecido.
 Este patrón corresponde al comportamiento típico de un ataque de fuerza bruta con diccionario.
 
 ![detection de ataque](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/attack-detection.png)
 
+## Configuracion de la Alerta en Splunk
+
+Una vez obtenida la búsqueda de correlación que detecta múltiples intentos fallidos en un intervalo de 5 minutos, se configuró una alerta programada en Splunk para automatizar la detección.
+
+Parámetros utilizados para la alerta:
+
+- Título de la alerta: RDP – Fuerza Bruta
+- Tipo: Real-time (continuously)
+- Consulta base: 
+```bash
+index=windows EventCode=4625 earliest=-5m@m latest=now
+| stats count by src_ip, user
+| where count > 10
+```
+- Condición: El número de resultados > 0
+- Acción asociada:
+      - Envío de notificación por correo electrónico a fabiansantana@...
+      - Asunto del correo: “Alerta – Fuerza Bruta RDP detectada”
+      - Contenido del correo: resumen de la búsqueda, incluyendo los campos src_ip, user y count.

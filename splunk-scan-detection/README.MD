@@ -64,3 +64,6 @@ sudo hydra -V -f -u -L -I /usr/share/seclists/Usernames/top-usernames-shortlist.
 rdp:// → Especifica el protocolo y la IP del objetivo.
 
 Este ataque genera múltiples eventos de inicio de sesión fallido (4625) en los registros de seguridad de Windows, los cuales son enviados a Splunk para su análisis y detección.
+
+
+![ataque con hydra](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/atack-hydra.png)

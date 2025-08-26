@@ -4,12 +4,12 @@
 
 ##  Introducción  
 
-En este laboratorio se simula un **ataque de fuerza bruta contra el servicio RDP (Remote Desktop Protocol)** en un entorno Windows 10.  
-El propósito es **demostrar el ciclo completo de detección y respuesta** empleando **Splunk Enterprise** como SIEM central.  
+En este laboratorio se simula un ataque de fuerza bruta contra el servicio RDP (Remote Desktop Protocol) en un entorno Windows 10.  
+El propósito es demostrar el ciclo completo de detección y respuesta** empleando **Splunk Enterprise como SIEM central.  
 
-La dinámica permite observar cómo un atacante, utilizando herramientas automatizadas desde Kali Linux, genera múltiples intentos de inicio de sesión fallidos. Estos eventos de seguridad son recolectados mediante **Universal Forwarder**, correlacionados en Splunk y finalmente usados como disparador de **alertas y acciones de respuesta automatizada (AR)**.  
+La dinámica permite observar cómo un atacante, utilizando herramientas automatizadas desde Kali Linux, genera múltiples intentos de inicio de sesión fallidos. Estos eventos de seguridad son recolectados mediante Universal Forwarder, correlacionados en Splunk y finalmente usados como disparador de alertas y acciones de respuesta automatizada (AR).  
 
-Este escenario se ubica dentro de la fase de **Acceso Inicial** de la *Cyber Kill Chain* y está alineado con la técnica **T1110.001 – Brute Force (RDP)** del marco **MITRE ATT&CK**.  
+Este escenario se ubica dentro de la fase de acceso Inicial de la *Cyber Kill Chain* y está alineado con la técnica **T1110.001 – Brute Force (RDP)** del marco **MITRE ATT&CK**.  
 
 ---
 
@@ -39,7 +39,7 @@ Este escenario se ubica dentro de la fase de **Acceso Inicial** de la *Cyber Kil
 
 El ataque se llevó a cabo desde la máquina **Kali Linux** utilizando la herramienta **Hydra** para realizar un ataque de fuerza bruta contra el servicio RDP del endpoint Windows.  
 
-En este escenario, se probó **varios nombres de usuario** combinados con un diccionario de contraseñas, con el objetivo de forzar accesos remotos no autorizados.  
+En este escenario, se probó varios nombres de usuario combinados con un diccionario de contraseñas, con el objetivo de forzar accesos remotos no autorizados.  
 
 Recursos utilizados:  
 
@@ -69,7 +69,7 @@ Este ataque genera múltiples eventos de inicio de sesión fallido (4625) en los
 
 ## Eventos recolectados en Splunk
 
-En la vista de **Events** se observa un registro con ID **4625 - An account failed to log on**, generado en la máquina víctima.  
+En la vista de Events se observa un registro con ID **4625 - An account failed to log on**, generado en la máquina víctima.  
 Este evento evidencia un intento de inicio de sesión fallido desde la máquina atacante(en la correlación posterior también aparecen otros usuarios comunes (`admin`, `root`, `test`, `oracle`, etc.), lo que refuerza el patrón típico de un ataque de fuerza bruta.) :
 
 - **Event Code:** 4625 
@@ -119,37 +119,45 @@ Este patrón corresponde al comportamiento típico de un ataque de fuerza bruta 
 
 ## Configuración de la Alerta en Splunk
 
-La búsqueda final de correlación se utilizó como base para crear una alerta en Splunk.  
-El criterio fue detectar **más de 10 intentos fallidos en una ventana de 5 minutos** desde la misma IP.  
-Cuando la condición se cumple, Splunk ejecuta una acción automática de **envío de correo** al analista SOC.
+A partir de la búsqueda de correlación definida anteriormente, se creó una alerta en Splunk con el fin de automatizar la detección de intentos de fuerza bruta.  
+El criterio configurado fue identificar más de 10 intentos de autenticación fallidos en una ventana de 5 minutos desde la misma dirección IP.  
+Si la condición se cumple, se genera automáticamente un correo electrónico con los detalles de la detección.
 
-En las siguientes capturas se observa la configuración de la alerta:
+### Programación y condiciones de disparo
 
-- **Programación y condiciones de disparo**: la alerta corre cada 5 minutos y se activa cuando el número de resultados es mayor que 0.  
+La alerta se programó con un intervalo de ejecución de 5 minutos.  
+Dentro de este período, si la consulta devuelve más de 0 resultados (es decir, si existe al menos una IP que supere el umbral de intentos fallidos), la alerta se activa y queda registrada.  
+
+En la siguiente captura se observa la sección de configuración relacionada con la frecuencia, rango de tiempo y condición de disparo:
+
 ![alerta-condiciones](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/alert-conditions.png)
 
-- **Acciones configuradas**: envío de correo a la casilla del analista con prioridad alta, incluyendo detalles del ataque detectado.  
+### Acciones configuradas
+
+Como acción principal, se definió el envío automático de un correo electrónico con prioridad alta.  
+El mensaje generado incluye un resumen de la alerta y los campos relevantes (`src_ip`, `user`, `count`) que permiten identificar rápidamente la fuente del ataque.  
+
+La siguiente captura muestra la sección de configuración de acciones, donde se especifica el destinatario, asunto y contenido del correo:
+
 ![alerta-correo](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/alert-email-config.png)
-
-
 ---
 
 ## Notificación por Correo
 
-Cuando la condición de la alerta se cumple, Splunk envía automáticamente un correo al analista SOC.  
-El correo contiene:
+Cuando la condición de la alerta se cumple, Splunk envía automáticamente un correo previamente definido en la configuracion de la alerta.  
+Este correo contiene:
 
 - **IP de origen del ataque (`src_ip`)**  
 - **Usuario objetivo (`user`)**  
 - **Cantidad de intentos fallidos (`count`)**  
 - **Enlace directo a Splunk** para continuar la investigación  
 
-![correo-alerta](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/mail-alert.png)
+![correo-alerta](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/mail-recived.png)
 
 ---
 
 ## Conclusión del Hito
 
-Con la creación de la alerta y la notificación por correo, queda implementada la fase de **detección automatizada** del laboratorio.  
-El siguiente paso será integrar una **Respuesta Automática (AR)** para bloquear la IP atacante en el firewall del endpoint y cerrar así el ciclo de detección y respuesta.
+Con la creación de la alerta y la notificación por correo, queda implementada la fase de detección automatizada del laboratorio.  
+El siguiente paso será integrar una Respuesta Automática (AR) para bloquear la IP atacante en el firewall del endpoint y cerrar así el ciclo de detección y respuesta.
 

@@ -5,9 +5,9 @@
 ##  Introducción  
 
 En este laboratorio se simula un ataque de fuerza bruta contra el servicio RDP (Remote Desktop Protocol) en un entorno Windows 10.  
-El propósito es demostrar el ciclo completo de detección y respuesta** empleando **Splunk Enterprise como SIEM central.  
+El propósito es demostrar el ciclo completo de detección y respuesta empleando **Splunk Enterprise** como SIEM central.  
 
-La dinámica permite observar cómo un atacante, utilizando herramientas automatizadas desde Kali Linux, genera múltiples intentos de inicio de sesión fallidos. Estos eventos de seguridad son recolectados mediante Universal Forwarder, correlacionados en Splunk y finalmente usados como disparador de alertas y acciones de respuesta automatizada (AR).  
+La dinámica permite observar cómo un atacante, utilizando herramientas automatizadas desde Kali Linux, genera múltiples intentos de inicio de sesión fallidos. Estos eventos de seguridad son recolectados mediante Universal Forwarder, correlacionados en Splunk y finalmente usados como disparador de alertas.  
 
 Este escenario se ubica dentro de la fase de acceso Inicial de la *Cyber Kill Chain* y está alineado con la técnica **T1110.001 – Brute Force (RDP)** del marco **MITRE ATT&CK**.  
 
@@ -20,7 +20,7 @@ Este escenario se ubica dentro de la fase de acceso Inicial de la *Cyber Kill Ch
 - **Correlacionar intentos fallidos** mediante búsquedas en SPL para identificar patrones de ataque.  
 - **Generar una alerta en Splunk** que:  
   - Notifique vía correo electrónico.  
-  - Ejecute un **script de respuesta automática** para bloquear la IP atacante en el firewall de Windows.  
+ 
 
 ---
 

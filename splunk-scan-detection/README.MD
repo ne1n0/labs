@@ -95,7 +95,7 @@ index=windows EventCode=4625
 
 
 Posteriormente, la búsqueda se refinó para aplicar una ventana de 5 minutos y establecer un umbral de más de 10 intentos por combinación de IP y usuario. Esta versión final se utilizó como base para configurar la alerta de fuerza bruta en Splunk:
-```bash
+```sql
 index=windows EventCode=4625 earliest=-5m@m latest=now
 | stats count by src_ip, user
 | where count > 10

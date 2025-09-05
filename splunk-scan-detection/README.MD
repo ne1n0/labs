@@ -17,8 +17,7 @@ Este escenario se ubica dentro de la fase de acceso Inicial de la Cyber Kill Cha
 - **Simular un ataque de fuerza bruta** contra RDP en un endpoint Windows utilizando **Hydra** desde Kali Linux.
 - **Recolectar, normalizar y analizar logs de seguridad** (Event ID **4625 – Failed Logon**) en Splunk.
 - **Correlacionar intentos fallidos** mediante búsquedas en SPL para identificar patrones de ataque.
-- **Generar una alerta en Splunk** que:
-    - Notifique vía correo electrónico.
+- **Generar una alerta en Splunk** que notifique vía correo electrónico.
 
 ---
 

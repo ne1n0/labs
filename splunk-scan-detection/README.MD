@@ -4,23 +4,21 @@
 
 ##  Introducción  
 
-En este laboratorio se simula un ataque de fuerza bruta contra el servicio RDP (Remote Desktop Protocol) en un entorno Windows 10.  
-El propósito es demostrar el ciclo completo de detección y respuesta empleando **Splunk Enterprise** como SIEM central.  
+En este laboratorio se simula un ataque de fuerza bruta contra el servicio RDP (Remote Desktop Protocol) en un entorno Windows 10. El propósito es demostrar el ciclo completo de detección y respuesta en un entorno SOC (Security Operations Center) empleando Splunk Enterprise como SIEM central y enfocándose en el flujo de trabajo de un analista de Nivel 1 (L1).
 
-La dinámica permite observar cómo un atacante, utilizando herramientas automatizadas desde Kali Linux, genera múltiples intentos de inicio de sesión fallidos. Estos eventos de seguridad son recolectados mediante Universal Forwarder, correlacionados en Splunk y finalmente usados como disparador de alertas.  
+La dinámica permite observar cómo un atacante, utilizando herramientas automatizadas desde Kali Linux, genera múltiples intentos de inicio de sesión fallidos. Estos eventos son recolectados mediante Universal Forwarder, correlacionados en Splunk, y finalmente usados como disparador de alertas que inician un proceso de triaje.
 
-Este escenario se ubica dentro de la fase de acceso Inicial de la *Cyber Kill Chain* y está alineado con la técnica **T1110.001 – Brute Force (RDP)** del marco **MITRE ATT&CK**.  
+Este escenario se ubica dentro de la fase de acceso Inicial de la Cyber Kill Chain y está alineado con la técnica T1110.001 – Brute Force (RDP) del marco MITRE ATT&CK.
 
 ---
 
 ##  Objetivos del laboratorio  
 
-- **Simular un ataque de fuerza bruta** contra RDP en un endpoint Windows utilizando **Hydra** desde Kali Linux.  
-- **Recolectar y enviar logs de seguridad** (Event ID **4625 – Failed Logon**) a Splunk.  
-- **Correlacionar intentos fallidos** mediante búsquedas en SPL para identificar patrones de ataque.  
-- **Generar una alerta en Splunk** que:  
-  - Notifique vía correo electrónico.  
- 
+- **Simular un ataque de fuerza bruta** contra RDP en un endpoint Windows utilizando **Hydra** desde Kali Linux.
+- **Recolectar, normalizar y analizar logs de seguridad** (Event ID **4625 – Failed Logon**) en Splunk.
+- **Correlacionar intentos fallidos** mediante búsquedas en SPL para identificar patrones de ataque.
+- **Generar una alerta en Splunk** que:
+    - Notifique vía correo electrónico.
 
 ---
 
@@ -31,7 +29,7 @@ Este escenario se ubica dentro de la fase de acceso Inicial de la *Cyber Kill Ch
 | Máquina víctima    | Windows 10 con servicio de Escritorio Remoto (RDP) habilitado.           | 192.168.100.140    |
 | Máquina atacante   | Kali Linux, ejecutando Hydra para el ataque de fuerza bruta.             | 192.168.100.110    |
 | Recolector SIEM    | Windows Server 2022 con Splunk Enterprise instalado.                     | 192.168.100.128    |
-| Agente de envío    | Splunk Universal Forwarder en Windows 10 para transmitir logs al SIEM.   | 192.168.100.140    |
+
 
 ---
 
@@ -54,8 +52,8 @@ sudo hydra -V -f -u -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt
 ```
 
 - -V  Muestra cada intento de autenticación (verbose).
-- -f  Detiene el ataque si encuentra una combinación válida.
-- -u  Intenta todas las contraseñas por usuario antes de cambiar de usuario.
+- -f  Detiene el ataque si encuentra la primera combinación válida de usuario y contraseña.
+- -u  Intenta todas las contraseñas para cada usuario antes de cambiar a la siguiente cuenta de usuario.
 - -L  Archivo con lista de posibles usuarios.
 - -P  Archivo con diccionario de contraseñas.
 
@@ -95,7 +93,7 @@ index=windows EventCode=4625
 
 
 Posteriormente, la búsqueda se refinó para aplicar una ventana de 5 minutos y establecer un umbral de más de 10 intentos por combinación de IP y usuario. Esta versión final se utilizó como base para configurar la alerta de fuerza bruta en Splunk:
-```sql
+```spl
 index=windows EventCode=4625 earliest=-5m@m latest=now
 | stats count by src_ip, user
 | where count > 10
@@ -154,10 +152,21 @@ Este correo contiene:
 
 ![correo-alerta](https://github.com/ne1n0/labs/blob/main/splunk-scan-detection/images/mail-recived.png)
 
+
+### Triaje y Análisis Inicial (Flujo SOC L1)
+
+Una vez que la alerta se activa, un analista de Nivel 1 (L1) iniciaría el proceso de triaje. Aunque este laboratorio no utiliza un sistema de ticketing, los pasos lógicos serían los siguientes:
+1.  Recepción de la alerta: El analista L1 recibe la notificación por correo electrónico de Splunk.
+2.  Creación de ticket: Se crea un nuevo ticket de incidente en la plataforma de ticketing del SOC, con la prioridad asignada y el título "Brute Force Attack - RDP".
+3.  Análisis preliminar: El analista utiliza el enlace directo de la alerta para investigar en Splunk.
+      - Verifica los datos del incidente (IP de origen, número de intentos, nombres de usuario) para confirmar que se trata de un ataque de fuerza bruta real y no de un falso positivo (ej. un usuario olvidó la contraseña repetidamente).
+      - Confirma que la IP de origen no es una de las IPs corporativas o conocidas.
+4.  Documentación: Se añaden al ticket los detalles clave del análisis: la consulta SPL, los eventos de log (EventCode=4625) y el resultado que muestra la IP y los usuarios afectados.
+5.  Escalamiento: Dada la naturaleza del ataque, el analista L1 documenta los hallazgos en el ticket y escala el incidente a un nivel superior (L2) para la contención y respuesta, lo que podría incluir el bloqueo de la IP a nivel de firewall.
+
 ---
 
 ## Conclusión del Hito
 
-Con la creación de la alerta y la notificación por correo, queda implementada la fase de detección automatizada del laboratorio.  
-El siguiente paso será integrar una Respuesta Automática (AR) para bloquear la IP atacante en el firewall del endpoint y cerrar así el ciclo de detección y respuesta.
+Con la creación de la alerta y la notificación por correo, queda implementada la fase de detección automatizada del ataque y el proceso de triaje inicial (L1). Este laboratorio demuestra la capacidad de monitorear eventos de seguridad, correlacionar datos para detectar amenazas y generar alertas que permiten a un analista iniciar una investigación de forma rápida y eficiente. Aunque el siguiente paso natural en un entorno de producción sería la respuesta automática o la contención, este laboratorio se centra en la primera fase del ciclo de vida de un incidente.
 
